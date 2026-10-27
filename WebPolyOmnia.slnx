@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="WebPolyOmnia/WebPolyOmnia.csproj" />
+  <Project Path="WPO.Application/WPO.Application.csproj" />
+  <Project Path="WPO.Domain/WPO.Domain.csproj" />
+  <Project Path="WPO.Infrastructure/WPO.Infrastructure.csproj" />
+</Solution>
