@@ -1,4 +1,9 @@
-﻿const API_BASE_URL = 'https://localhost:7175/api';
+﻿import { VideoService } from './videoService.js';
+import { CategoryService } from './categoryService.js';
+import { UserService } from './userService.js';
+import { VideoHelper } from './videoHelper.js';
+
+const API_BASE_URL = 'https://localhost:7175/api';
 
 class WebPolyOmniaApp {
     constructor() {
@@ -29,54 +34,115 @@ class WebPolyOmniaApp {
     // ==========================================
 
     async renderCategoryList() {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        const category = await response.json();
+        try {
+            const categories = await CategoryService.getCategories();
 
-        let html = `
-            <h2>Список категорій</h2>
-            <button onclick="app.navigateTo('categories-form')" style="margin-bottom: 1rem;">+ Додати категорію</button>
-            <table>
-                <thead>
-                    <tr><th>Назва</th><th>Дії</th></tr>
-                </thead>
-                <tbody>
+            let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Список категорій</h2>
+                <button onclick="app.navigateTo('categories-form')" class="btn btn-brand rounded-pill px-3">
+                    <i class="bi bi-plus-lg me-1"></i> Додати категорію
+                </button>
+            </div>
+
+            <div class="card poly-card border-secondary overflow-hidden shadow-sm">
+                <div class="table-responsive mb-0">
+                    <table class="table table-dark table-hover align-middle mb-0 border-secondary">
+                        <thead>
+                            <tr>
+                                <th>Назва</th>
+                                <th class="text-end pe-4">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
         `;
 
-        category.forEach(cat => {
-            html += `
-                <tr>
-                    <td>${cat.name}</td>
-                    <td>
-                        <button onclick="app.navigateTo('categories-form', ${cat.id})">Редагувати</button>
-                        <button onclick="app.Delete(${cat.id})" style="background-color: #dc3545;">Видалити</button>
-                    </td>
-                </tr>
-            `;
-        });
+            if (categories.length === 0) {
+                html += `<tr><td colspan="3" class="text-center text-muted py-4">Категорії відсутні</td></tr>`;
+            } else {
+                categories.forEach(cat => {
+                    html += `
+                    <tr>
+                        <td class="text-light fw-medium">${cat.name}</td>
+                        <td class="text-end pe-4">
+                            <button onclick="app.navigateTo('categories-form', ${cat.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
+                                <i class="bi bi-pencil"></i> Редагувати
+                            </button>
+                            <button onclick="app.deleteCategory(${cat.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                <i class="bi bi-trash"></i> Видалити
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                });
+            }
 
-        html += `</tbody></table>`;
-        this.contentContainer.innerHTML = html;
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+            this.contentContainer.innerHTML = html;
+        } catch (error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+        }
     }
 
     async renderCategoryForm(id) {
         let category = { id: 0, name: '' };
 
         if (id) {
-            const response = await fetch(`${API_BASE_URL}/categories/${id}`); 
-            category = await response.json();
+            try {
+                const response = await CategoryService.saveCategory(id);
+                this.navigateTo("categories");
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         this.contentContainer.innerHTML = `
-            <h2>${id ? 'Редагувати' : 'Додати'} категорію</h2>
-            <form onsubmit="app.saveCategory(event)">
-                <input type="hidden" id="categoryId" value="${category.id}">
-                <div class="form-group">
-                    <label>Назва категорії:</label>
-                    <input type="text" id="categoryName" value="${category.name}" required>
+            <div class="row justify-content-center my-4">
+                <div class="col-12 col-md-8 col-lg-6">
+                    <!-- Додано класи bg-dark text-white для правильного темного фону -->
+                    <div class="card poly-card bg-dark text-white border-secondary p-4 p-sm-5 shadow-lg position-relative overflow-hidden">
+                        
+                        <!-- Декоративна лінія-градієнт зверху картки -->
+                        <div class="position-absolute top-0 start-0 end-0" style="height: 4px; background: linear-gradient(135deg, var(--electric-indigo) 0%, var(--bright-coral) 100%);"></div>
+
+                        <div class="d-flex align-items-center mb-4">
+                            <button type="button" onclick="app.navigateTo('categories')" class="btn btn-outline-secondary btn-sm rounded-pill px-3 me-3 text-light">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <h2 class="fw-bold text-white mb-0 fs-3">${id ? 'Редагувати категорію' : 'Додати нову категорію'}</h2>
+                        </div>
+
+                        <form onsubmit="app.saveCategory" class="d-flex flex-column gap-3">
+                            <input type="hidden" id="categoryId" value="${category.id || 0}">
+                            
+                            <div>
+                                <label class="form-label text-light small fw-semibold">Назва категорії:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary bg-opacity-25 border-secondary text-light">
+                                        <i class="bi bi-tag-fill"></i>
+                                    </span>
+                                    <input type="text" id="categoryName" class="form-control form-control-poly py-2" value="${category.name || ''}" placeholder="Введіть назву категорії..." required>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button type="submit" class="btn btn-brand py-2 px-4 rounded-pill fw-semibold shadow-sm">
+                                    <i class="bi bi-check-lg me-1"></i> Зберегти
+                                </button>
+                                <button type="button" onclick="app.navigateTo('categories')" class="btn btn-outline-secondary py-2 px-4 rounded-pill text-light border-secondary">
+                                    Скасувати
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
                 </div>
-                <button type="submit">Зберегти</button>
-                <button type="button" onclick="app.navigateTo('categories')" style="background-color: #6c757d;">Скасувати</button>
-            </form>
+            </div>
         `;
     }
 
@@ -89,32 +155,23 @@ class WebPolyOmniaApp {
             name: document.getElementById('categoryName').value
         };
 
-        const isNew = id === 0;
-        const method = isNew ? 'POST' : 'PUT'; // POST або PUT
-        const url = isNew ? `${API_BASE_URL}/categories` : `${API_BASE_URL}/categories/${id}`;
+        try {
+            const response = await CategoryService.saveCategory(categoryDto);
+            this.navigateTo('categories');
 
-        const response = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(categoryDto)
-        });
-
-        if (response.ok) {
-            await this.navigateTo('categories');
-        } else {
-            alert('Помилка при збереженні категорії');
+        } catch (error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 
     async deleteCategory(id) {
         if (!confirm('Ви впевнені, що хочете видалити цю категорію?')) return;
-
-        const response = await fetch(`${API_BASE_URL}/categories/${id}`, { // DELETE: api/teams/{id}
-            method: 'DELETE'
-        });
-
-        if (response.ok) await this.renderCategoryList();
-        else alert('Помилка при видаленні категорії');
+        try {
+            const response = await CategoryService.deleteCategory(id);
+            this.navigateTo('categories');
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     // ==========================================
@@ -122,62 +179,87 @@ class WebPolyOmniaApp {
     // ==========================================
 
     async renderUsersList() {
-        const response = await fetch(`${API_BASE_URL}/users`);
-        const users = await response.json();
+        try {
+            const users = await UserService.getUsers();
 
-        let html = `
-            <h2>Список не затверджених користувачів</h2>
-            <table>
-                <thead>
-                    <tr><th>Ім'я</th><th>Прізвище</th><th>Мейл</th><th>Логін</th><th>Дата створення</th><th>Роль</th><th>Дії</th></tr>
-                </thead>
-                <tbody>
-        `;
+            let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Список не затверджених користувачів</h2>
+            </div>
 
-        users.forEach(user => {
-            html += `
-                <tr>
-                    <td>${user.name}</td>
-                    <td>${user.surname}</td>
-                    <td>${user.email}</td>
-                    <td>${user.login}</td>
-                    <td>${user.createAt}</td>
-                    <td>${user.role}</td>
-                    <td>
-                        <button onclick="app.navigateTo('users-form', ${user.id})">Підтвердити</button>
-                        <button onclick="app.Delete(${user.id})" style="background-color: #dc3545;">Видалити</button>
-                    </td>
-                </tr>
+            <div class="card poly-card border-secondary overflow-hidden shadow-sm">
+                <div class="table-responsive mb-0">
+                    <table class="table table-dark table-hover align-middle mb-0 border-secondary">
+                        <thead>
+                            <tr>
+                                <tr><th>Ім'я</th>
+                                <th>Прізвище</th>
+                                <th>Мейл</th>
+                                <th>Логін</th>
+                                <th>Дата створення</th>
+                                <th>Роль</th>
+                                <th class="text-end pe-4">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
             `;
-        });
 
-        html += `</tbody></table>`;
-        this.contentContainer.innerHTML = html;
+            if (users.length === 0) {
+                html += `<tr><td colspan="3" class="text-center text-muted py-4">Користувачі відсутні</td></tr>`;
+            } else {
+                users.forEach(user => {
+                    html += `
+                    <tr>
+                        <td class="text-light fw-medium">${user.name}</td>
+                        <td class="text-light fw-medium">${user.surname}</td>
+                        <td class="text-light fw-medium">${user.email}</td>
+                        <td class="text-light fw-medium">${user.login}</td>
+                        <td class="text-light fw-medium">${formatDate(user)}</td>
+                        <td class="text-light fw-medium">${user.role}</td>
+                        <td class="text-end pe-4">
+                            <button onclick="app.aproveUser(${user.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
+                                <i class="bi bi-pencil"></i> Затвердити
+                            </button>
+                            <button onclick="app.deleteUser(${user.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                <i class="bi bi-trash"></i> Видалити
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                });
+            }
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            `;
+         this.contentContainer.innerHTML = html;
+         }
+         catch (error) {
+                this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+         }
     }
-
-
     async aproveUser(id) {
         event.preventDefault();
-        const response = await fetch(`${API_BASE_URL}/users/${id}`, {
-            method: "POST"
-        });
-
-        if (response.ok) {
-            await this.navigateTo('users');
-        } else {
-            alert('Помилка при зміні ролі користувача');
+        try {
+            await UserService.approveUser(id);
+            this.navigateTo('users');
+        } catch(error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 
     async deleteUser(id) {
+        event.preventDefault();
         if (!confirm('Ви впевнені, що хочете видалити цього користувача?')) return;
-
-        const response = await fetch(`${API_BASE_URL}/users/${id}`, { 
-            method: 'DELETE'
-        });
-
-        if (response.ok) await this.renderUsersList();
-        else alert('Помилка при видаленні користувача');
+        try {
+            await UserService.deleteUser(id);
+            this.navigateTo('users');
+        } catch (error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+        }
     }
 
     // ==========================================
@@ -185,96 +267,196 @@ class WebPolyOmniaApp {
     // ==========================================
 
     async renderVideoList() {
-        const response = await fetch(`${API_BASE_URL}/videos`);
-        const video = await response.json();
+        try {
+            const video = await VideoService.getUnapprovedVideos();
 
-        let html = `
-            <h2>Список не затверджених відео</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Назва</th>
-                        <th>Автор</th>
-                        <th>Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
+            let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Список не затверджених відео</h2>
+            </div>
+
+            <div class="card poly-card border-secondary overflow-hidden shadow-sm">
+                <div class="table-responsive mb-0">
+                    <table class="table table-dark table-hover align-middle mb-0 border-secondary">
+                        <thead>
+                            <tr>
+                                <th>Назва</th>
+                                <th>Автор</th>
+                                <th class="text-end pe-4">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
         `;
 
-        video.forEach(v => {
-            html += `
-                <tr>
-                    <td>${v.id}</td>
-                    <td>${v.title}</td>
-                    <td>${v.author || 'Не вказано'}</td>
-                    <td>
-                        <button class="btn-green" onclick="app.navigateTo('videos-form', ${v.id})" style="background-color: #28a745; color: white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Детальніше</button>
-                        <button class="btn-red" onclick="app.Delete(${v.id})" style="background-color: #dc3545; color: white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Видалити</button>
-                    </td>
-                </tr>
-            `;
-        });
+            if (video.length === 0) {
+                html += `<tr><td colspan="3" class="text-center text-muted py-4">Категорії відсутні</td></tr>`;
+            } else {
+                video.forEach(v => {
+                    html += `
+                    <tr>
+                        <td class="text-light fw-medium">${v.title}</td>
+                        <td class="text-light fw-medium">${v.user}</td>
+                        <td class="text-end pe-4">
+                            <button onclick="app.navigateTo('videos-form', ${v.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
+                                <i class="bi bi-pencil"></i> Детальніше
+                            </button>
+                            <button onclick="app.deleteVideo(${v.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                <i class="bi bi-trash"></i> Видалити
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                });
+            }
 
-        html += `</tbody></table>`;
-        this.contentContainer.innerHTML = html;
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+            this.contentContainer.innerHTML = html;
+        } catch (error) {
+                this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+        }
     }
 
     async renderVideo(id) {
-        this.contentContainer.innerHTML = '<p>Завантаження відео...</p>';
-        try {
-            const response = await fetch(`${API_BASE_URL}/videos/${id}`);
-            if (!response.ok) throw new Error('Не вдалося завантажити інформацію про відео');
+        this.contentContainer.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-2">Завантаження відео...</p>
+            </div>
+        `;
 
-            const video = await response.json();
+        try {
+            const video = await VideoService.getVideoById(id);
+            const isYouTube = VideoHelper.isYouTubeUrl(video.urlOrPath);
+            const formattedDate = VideoHelper.formatDate(video.createdAt);
+
+            const finalUrl = isYouTube ? VideoHelper.convertToEmbedUrl(video.urlOrPath) : video.urlOrPath;
+
+            let playerHtml = '';
+            if (isYouTube) {
+                playerHtml = `
+                    <iframe src="${finalUrl}"
+                            title="${video.title || 'YouTube video'}"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowfullscreen
+                            class="w-100 h-100 border-0">
+                    </iframe>`;
+            } else {
+                playerHtml = `
+                    <video controls poster="${video.thumbnailUrlOrPath || ''}" class="w-100 h-100" style="object-fit: contain;">
+                        <source src="${finalUrl}" type="video/mp4">
+                        Ваш браузер не підтримує тег відео.
+                    </video>`;
+            }
+
+            const authorInitial = video.user && video.user.login ? video.user.login.charAt(0).toUpperCase() : 'A';
+            const authorName = video.user || 'Не вказано';
+            const categoryName = video.category || 'Без категорії';
 
             this.contentContainer.innerHTML = `
-                <div class="video-detail-container" style="max-width: 800px; margin: 0 auto;">
-                    <button onclick="app.renderVideoList()" style="margin-bottom: 1rem; background-color: #6c757d; color: white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">← Назад до списку</button>
-                    
-                    <h2>${video.title || 'Без назви'}</h2>
-                    
-                    <div class="video-player-wrapper" style="margin-bottom: 1rem; background: #000; border-radius: 8px; overflow: hidden;">
-                        <video width="100%" controls style="display: block;">
-                            <!-- video.urlOrPath береться з твоїх полів сутності в базі даних -->
-                            <source src="${video.urlOrPath}" type="video/mp4">
-                            Ваш браузер не підтримує тег відео.
-                        </video>
+                <div class="container-fluid px-lg-5 py-4">
+                    <div class="mb-3">
+                        <button onclick="app.renderVideoList()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            <i class="bi bi-arrow-left me-1"></i> Назад до списку
+                        </button>
                     </div>
 
-                    <div class="video-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 1rem;">
-                        <p><strong>Опис:</strong> ${video.description || 'Опис відсутній'}</p>
-                        <p><strong>Автор:</strong> ${video.user || 'Не вказано'}</p>
-                        <p><strong>Категорія:</strong> ${video.category || 'Не вказана'}</p>
-                        <p><strong>Дата створення:</strong> ${new Date(video.createdAt).toLocaleDateString()}</p>
-                        <p><strong>Кількість переглядів:</strong> ${video.viewCount || 0}</p>
-                    </div>
+                    <div class="row g-4">
+                        <!-- ЛІВА КОЛОНКА: ПЛЕЄР ТА ОПИС -->
+                        <div class="col-lg-8 col-xl-9">
+                            <div class="ratio ratio-16x9 bg-black rounded-3 border border-secondary shadow-lg overflow-hidden mb-3">
+                                ${playerHtml}
+                            </div>
 
-                    <div class="video-actions">
-                        <button onclick="app.aproveVideo(${video.id})" style="background-color: #28a745; color: white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer; margin-right: 10px;">Затвердити</button>
-                        <button onclick="app.delete(${video.id})" style="background-color: #dc3545; color: white; border:none; padding:8px 16px; border-radius:4px; cursor:pointer;">Видалити</button>
+                            <div class="card bg-dark text-white border-secondary p-4 shadow-sm rounded-3">
+                                <h5 class="fw-semibold text-light mb-2 fs-6 text-uppercase tracking-wider">
+                                    Опис відео
+                                </h5>
+                                <p class="text-secondary fs-6 lh-base mb-0">
+                                    ${video.description || 'Опис відсутній'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- ПРАВА КОЛОНКА: МЕТАДАНІ ТА ДІЇ МОДЕРАЦІЇ -->
+                        <div class="col-lg-4 col-xl-3">
+                            <div class="d-flex flex-column gap-3 sticky-top" style="top: 20px;">
+                                
+                                <div class="card bg-dark text-white border-secondary p-3 shadow-sm rounded-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                        <span class="badge bg-primary px-2 py-1 fs-8 rounded-pill">
+                                            <i class="bi bi-tag-fill me-1"></i> ${categoryName}
+                                        </span>
+                                        <span class="text-muted fs-7">
+                                            <i class="bi bi-eye me-1"></i> ${video.viewCount || 0}
+                                        </span>
+                                    </div>
+                                    <h1 class="fw-bold text-white fs-4 mb-0">${video.title || 'Без назви'}</h1>
+                                </div>
+
+                                <div class="card bg-dark text-white border-secondary p-3 shadow-sm rounded-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-5 rounded-circle shadow-sm" style="width: 45px; height: 45px;">
+                                            ${authorInitial}
+                                        </div>
+                                        <div class="overflow-hidden">
+                                            <h6 class="mb-0 fw-bold text-white fs-6 text-truncate">${authorName}</h6>
+                                            <small class="text-muted fs-7">Автор контенту</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card bg-dark text-white border-secondary p-3 shadow-sm rounded-3 d-flex flex-column gap-2">
+                                    <button onclick="app.aproveVideo(${video.id})" class="btn btn-brand w-100 d-flex align-items-center justify-content-center gap-2 py-2 fs-7 fw-semibold">
+                                        <i class="bi bi-check-circle"></i> Затвердити відео
+                                    </button>
+                                    <button onclick="app.deleteVideo(${video.id})" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 fs-7">
+                                        <i class="bi bi-trash"></i> Видалити
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
         } catch (error) {
-            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+            this.contentContainer.innerHTML = `<div class="alert alert-danger m-4">Помилка: ${error.message}</div>`;
         }
-
     }
 
     async aproveVideo(id) {
         event.preventDefault();
-        const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
-            method: "POST"
-        });
+        try {
+            const response = await VideoService.approveVideo(id);
+            this.navigateTo('video');
+        } catch(error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+        }
+    }
 
-        if (response.ok) {
-            await this.navigateTo('videos');
-        } else {
-            alert('Помилка при затвердженні відео');
+    async deleteVideo(id) {
+        event.preventDefault();
+        if (!confirm('Ви впевнені, що хочете видалити це відео?')) return;
+        try {
+            await VideoService.deleteVideo(id);
+            this.navigateTo('video');
+        } catch (error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 }
 
-const app = new WebPolyOmniaApp();
-window.app = app;
+window.app = new WebPolyOmniaApp();
+
+
+// Функція для красивого виведення дати
+function formatDate(item) {
+    const rawDate = item.createdAt || item.CreatedAt || item.dateCreated || item.DateCreated;
+    if (!rawDate) return 'Дата відсутня';
+    const date = new Date(rawDate);
+    return isNaN(date.getTime()) ? 'Некоректна дата' : date.toLocaleDateString('uk-UA');
+}

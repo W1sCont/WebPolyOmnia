@@ -1,83 +1,112 @@
 ﻿:root {
-    --primary-color: #007bff;
-    --bg-color: #f8f9fa;
-    --border-color: #dee2e6;
+    --bg-carbon: #0F0F12;
+    --card-bg: #18181C;
+    --card-border: #2A2A32;
+    --electric-indigo: #6C5CE7;
+    --deep-violet: #4A148C;
+    --bright-coral: #FF7675;
+    --text-main: #F1F1F5;
+    --text-muted: #B0B0C2;
+    --text-placeholder: #A0A0B5;
 }
 
 body {
-    font-family: system-ui, -apple-system, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg-color);
+    background-color: var(--bg-carbon);
+    color: var(--text-main);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
-
-header {
-    background-color: #343a40;
-    color: white;
-    padding: 1rem;
-    text-align: center;
-}
-
-nav {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    padding: 1rem;
-    background-color: white;
-    border-bottom: 1px solid var(--border-color);
-}
-
-button {
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-}
-
-    button:hover {
-        opacity: 0.9;
-    }
 
 main {
-    padding: 2rem;
-    max-width: 800px;
-    margin: 0 auto;
-    background: white;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    min-height: 400px;
+    flex: 1;
 }
 
+/* Стилізація таблиць під темну тему */
 table {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
+    color: var(--text-main) !important;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--card-border);
 }
 
-th, td {
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    text-align: left;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-    .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
+    table th {
+        background-color: #202025;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--card-border);
     }
 
-    .form-group input {
-        width: 100%;
-        padding: 0.5rem;
-        box-sizing: border-box;
+    table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--card-border);
+        vertical-align: middle;
     }
 
-.action-buttons {
-    display: flex;
-    gap: 0.5rem;
+    table tr:last-child td {
+        border-bottom: none;
+    }
+
+    table tr:hover {
+        background-color: rgba(108, 92, 231, 0.05);
+    }
+
+/* Форми та поля вводу */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+    background-color: #18181C !important;
+    border: 1px solid var(--card-border) !important;
+    color: #FFFFFF !important;
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+    input:focus, textarea:focus, select:focus {
+        border-color: var(--electric-indigo) !important;
+        outline: none;
+        box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, 0.25);
+    }
+
+/* Buttons & Badges */
+.btn-brand {
+    background: linear-gradient(135deg, var(--electric-indigo) 0%, var(--deep-violet) 100%);
+    color: #FFFFFF !important;
+    border: none;
+    transition: all 0.2s ease-in-out;
+}
+
+    .btn-brand:hover {
+        opacity: 0.9;
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+    }
+
+.btn-outline-brand {
+    border: 1px solid var(--electric-indigo);
+    color: var(--electric-indigo);
+    background: transparent;
+}
+
+    .btn-outline-brand:hover {
+        background: var(--electric-indigo);
+        color: #FFFFFF !important;
+    }
+
+/* Заголовки */
+h2 {
+    color: var(--text-main);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.poly-card {
+    background-color: var(--card-bg) !important;
+    border-color: var(--card-border) !important;
+    color: var(--text-main) !important;
 }

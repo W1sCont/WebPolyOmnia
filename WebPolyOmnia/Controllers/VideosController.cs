@@ -23,7 +23,7 @@ namespace WebPolyOmnia.Controllers
             return Ok(video);
         }
 
-        [HttpPost]
+        [HttpPut("{id}")]
         public async Task<ActionResult> ApproveVideo(int id)
         {
             await videoService.ApproveVideoAsync(id);

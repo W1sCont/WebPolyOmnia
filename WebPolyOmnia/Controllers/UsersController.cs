@@ -17,7 +17,7 @@ namespace WebPolyOmnia.Controllers
             return Ok(users);
         }
 
-        [HttpPost("users/{id}")]
+        [HttpPut("{id}")]
         public async Task<ActionResult> ApproveUser(int id)
         {
             if (id == 0) return BadRequest(new { message = "Error ID" });
