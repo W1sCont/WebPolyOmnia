@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WPO.Application.Interfaces;
+using WPO.Domain;
 using WPO.Infrastructure.Services;
 
 namespace WebPolyOmnia.Controllers
@@ -13,6 +14,7 @@ namespace WebPolyOmnia.Controllers
         public async Task<ActionResult> ApproveVideos()
         {
             var videos = await videoService.GetPendingVideosAsync();
+            if (videos == null) return NotFound();
             return Ok(videos);
         }
 
@@ -30,7 +32,7 @@ namespace WebPolyOmnia.Controllers
             return CreatedAtAction(nameof(ApproveVideos), null);
         }
 
-        [HttpDelete("videos/{id}")]
+        [HttpDelete("{id}")]
         public async Task<ActionResult> RejectVideo(int id)
         {
             await videoService.DeleteVideoById(id);

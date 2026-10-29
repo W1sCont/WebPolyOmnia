@@ -16,12 +16,11 @@ class WebPolyOmniaApp {
     }
 
     async navigateTo(view, id = null) {
-        this.contentContainer.innerHTML = '<p>Завантаження...</p>';
+        this.contentContainer.innerHTML = '<p class="text-center py-4 text-muted">Завантаження...</p>';
         try {
             if (view === 'categories') await this.renderCategoryList();
             else if (view === 'categories-form') await this.renderCategoryForm(id);
             else if (view === 'users') await this.renderUsersList();
-            else if (view === 'users-form') await this.aproveUser(id);
             else if (view === 'videos') await this.renderVideoList();
             else if (view === 'videos-form') await this.renderVideo(id);
         } catch (error) {
@@ -58,7 +57,7 @@ class WebPolyOmniaApp {
         `;
 
             if (categories.length === 0) {
-                html += `<tr><td colspan="3" class="text-center text-muted py-4">Категорії відсутні</td></tr>`;
+                html += `<tr><td colspan="2" class="text-center text-muted py-4">Категорії відсутні</td></tr>`;
             } else {
                 categories.forEach(cat => {
                     html += `
@@ -92,22 +91,22 @@ class WebPolyOmniaApp {
     async renderCategoryForm(id) {
         let category = { id: 0, name: '' };
 
+        // Виправлено завантаження існуючої категорії за ID
         if (id) {
             try {
-                const response = await CategoryService.saveCategory(id);
-                this.navigateTo("categories");
+                const responce = await CategoryService.getCategoriesById(id);
+                category = responce;
             } catch (e) {
-                console.error(e);
+                console.error('Помилка завантаження категорії:', e);
             }
         }
+        console.log(category)
 
         this.contentContainer.innerHTML = `
             <div class="row justify-content-center my-4">
                 <div class="col-12 col-md-8 col-lg-6">
-                    <!-- Додано класи bg-dark text-white для правильного темного фону -->
                     <div class="card poly-card bg-dark text-white border-secondary p-4 p-sm-5 shadow-lg position-relative overflow-hidden">
                         
-                        <!-- Декоративна лінія-градієнт зверху картки -->
                         <div class="position-absolute top-0 start-0 end-0" style="height: 4px; background: linear-gradient(135deg, var(--electric-indigo) 0%, var(--bright-coral) 100%);"></div>
 
                         <div class="d-flex align-items-center mb-4">
@@ -117,7 +116,8 @@ class WebPolyOmniaApp {
                             <h2 class="fw-bold text-white mb-0 fs-3">${id ? 'Редагувати категорію' : 'Додати нову категорію'}</h2>
                         </div>
 
-                        <form onsubmit="app.saveCategory" class="d-flex flex-column gap-3">
+                        <!-- Додано передачу event у виклик методу saveCategory -->
+                        <form onsubmit="app.saveCategory(event)" class="d-flex flex-column gap-3">
                             <input type="hidden" id="categoryId" value="${category.id || 0}">
                             
                             <div>
@@ -148,18 +148,20 @@ class WebPolyOmniaApp {
 
     async saveCategory(event) {
         event.preventDefault();
+        console.log("saveCategory")
         const id = parseInt(document.getElementById('categoryId').value);
 
         const categoryDto = {
-            id: id,
+            id: isNaN(id) ? 0 : id,
             name: document.getElementById('categoryName').value
         };
 
         try {
-            const response = await CategoryService.saveCategory(categoryDto);
+            await CategoryService.saveCategory(categoryDto);
             this.navigateTo('categories');
 
         } catch (error) {
+            console.error("Повна помилка:", error);
             this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
@@ -167,7 +169,7 @@ class WebPolyOmniaApp {
     async deleteCategory(id) {
         if (!confirm('Ви впевнені, що хочете видалити цю категорію?')) return;
         try {
-            const response = await CategoryService.deleteCategory(id);
+            await CategoryService.deleteCategory(id);
             this.navigateTo('categories');
         } catch (error) {
             alert(error.message);
@@ -192,7 +194,7 @@ class WebPolyOmniaApp {
                     <table class="table table-dark table-hover align-middle mb-0 border-secondary">
                         <thead>
                             <tr>
-                                <tr><th>Ім'я</th>
+                                <th>Ім'я</th>
                                 <th>Прізвище</th>
                                 <th>Мейл</th>
                                 <th>Логін</th>
@@ -205,22 +207,22 @@ class WebPolyOmniaApp {
             `;
 
             if (users.length === 0) {
-                html += `<tr><td colspan="3" class="text-center text-muted py-4">Користувачі відсутні</td></tr>`;
+                html += `<tr><td colspan="7" class="text-center text-muted py-4">Користувачі відсутні</td></tr>`;
             } else {
                 users.forEach(user => {
                     html += `
                     <tr>
-                        <td class="text-light fw-medium">${user.name}</td>
-                        <td class="text-light fw-medium">${user.surname}</td>
-                        <td class="text-light fw-medium">${user.email}</td>
-                        <td class="text-light fw-medium">${user.login}</td>
+                        <td class="text-light fw-medium">${user.name || ''}</td>
+                        <td class="text-light fw-medium">${user.surname || ''}</td>
+                        <td class="text-light fw-medium">${user.email || ''}</td>
+                        <td class="text-light fw-medium">${user.login || ''}</td>
                         <td class="text-light fw-medium">${formatDate(user)}</td>
-                        <td class="text-light fw-medium">${user.role}</td>
+                        <td class="text-light fw-medium">${user.role || ''}</td>
                         <td class="text-end pe-4">
-                            <button onclick="app.aproveUser(${user.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
-                                <i class="bi bi-pencil"></i> Затвердити
+                            <button onclick="app.aproveUser(event, ${user.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
+                                <i class="bi bi-check-lg"></i> Затвердити
                             </button>
-                            <button onclick="app.deleteUser(${user.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                            <button onclick="app.deleteUser(event, ${user.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                                 <i class="bi bi-trash"></i> Видалити
                             </button>
                         </td>
@@ -235,24 +237,24 @@ class WebPolyOmniaApp {
                 </div>
             </div>
             `;
-         this.contentContainer.innerHTML = html;
-         }
-         catch (error) {
-                this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
-         }
-    }
-    async aproveUser(id) {
-        event.preventDefault();
-        try {
-            await UserService.approveUser(id);
-            this.navigateTo('users');
-        } catch(error) {
+            this.contentContainer.innerHTML = html;
+        } catch (error) {
             this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 
-    async deleteUser(id) {
-        event.preventDefault();
+    async aproveUser(event, id) {
+        if (event) event.preventDefault();
+        try {
+            await UserService.approveUser(id);
+            this.navigateTo('users');
+        } catch (error) {
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+        }
+    }
+
+    async deleteUser(event, id) {
+        if (event) event.preventDefault();
         if (!confirm('Ви впевнені, що хочете видалити цього користувача?')) return;
         try {
             await UserService.deleteUser(id);
@@ -289,18 +291,18 @@ class WebPolyOmniaApp {
         `;
 
             if (video.length === 0) {
-                html += `<tr><td colspan="3" class="text-center text-muted py-4">Категорії відсутні</td></tr>`;
+                html += `<tr><td colspan="3" class="text-center text-muted py-4">Відео відсутні</td></tr>`;
             } else {
                 video.forEach(v => {
                     html += `
                     <tr>
                         <td class="text-light fw-medium">${v.title}</td>
-                        <td class="text-light fw-medium">${v.user}</td>
+                        <td class="text-light fw-medium">${v.user || 'Не вказано'}</td>
                         <td class="text-end pe-4">
                             <button onclick="app.navigateTo('videos-form', ${v.id})" class="btn btn-sm btn-outline-brand rounded-pill px-3 me-1">
-                                <i class="bi bi-pencil"></i> Детальніше
+                                <i class="bi bi-eye"></i> Детальніше
                             </button>
-                            <button onclick="app.deleteVideo(${v.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                            <button onclick="app.deleteVideo(event, ${v.id})" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                                 <i class="bi bi-trash"></i> Видалити
                             </button>
                         </td>
@@ -317,7 +319,7 @@ class WebPolyOmniaApp {
         `;
             this.contentContainer.innerHTML = html;
         } catch (error) {
-                this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
+            this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 
@@ -332,8 +334,6 @@ class WebPolyOmniaApp {
         try {
             const video = await VideoService.getVideoById(id);
             const isYouTube = VideoHelper.isYouTubeUrl(video.urlOrPath);
-            const formattedDate = VideoHelper.formatDate(video.createdAt);
-
             const finalUrl = isYouTube ? VideoHelper.convertToEmbedUrl(video.urlOrPath) : video.urlOrPath;
 
             let playerHtml = '';
@@ -353,20 +353,19 @@ class WebPolyOmniaApp {
                     </video>`;
             }
 
-            const authorInitial = video.user && video.user.login ? video.user.login.charAt(0).toUpperCase() : 'A';
+            const authorInitial = video.user && typeof video.user === 'string' ? video.user.charAt(0).toUpperCase() : 'A';
             const authorName = video.user || 'Не вказано';
             const categoryName = video.category || 'Без категорії';
 
             this.contentContainer.innerHTML = `
                 <div class="container-fluid px-lg-5 py-4">
                     <div class="mb-3">
-                        <button onclick="app.renderVideoList()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        <button onclick="app.navigateTo('videos')" class="btn btn-outline-secondary btn-sm rounded-pill px-3 text-light">
                             <i class="bi bi-arrow-left me-1"></i> Назад до списку
                         </button>
                     </div>
 
                     <div class="row g-4">
-                        <!-- ЛІВА КОЛОНКА: ПЛЕЄР ТА ОПИС -->
                         <div class="col-lg-8 col-xl-9">
                             <div class="ratio ratio-16x9 bg-black rounded-3 border border-secondary shadow-lg overflow-hidden mb-3">
                                 ${playerHtml}
@@ -382,7 +381,6 @@ class WebPolyOmniaApp {
                             </div>
                         </div>
 
-                        <!-- ПРАВА КОЛОНКА: МЕТАДАНІ ТА ДІЇ МОДЕРАЦІЇ -->
                         <div class="col-lg-4 col-xl-3">
                             <div class="d-flex flex-column gap-3 sticky-top" style="top: 20px;">
                                 
@@ -414,7 +412,7 @@ class WebPolyOmniaApp {
                                     <button onclick="app.aproveVideo(${video.id})" class="btn btn-brand w-100 d-flex align-items-center justify-content-center gap-2 py-2 fs-7 fw-semibold">
                                         <i class="bi bi-check-circle"></i> Затвердити відео
                                     </button>
-                                    <button onclick="app.deleteVideo(${video.id})" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 fs-7">
+                                    <button onclick="app.deleteVideo(event, ${video.id})" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 fs-7">
                                         <i class="bi bi-trash"></i> Видалити
                                     </button>
                                 </div>
@@ -429,21 +427,24 @@ class WebPolyOmniaApp {
     }
 
     async aproveVideo(id) {
-        event.preventDefault();
         try {
             const response = await VideoService.approveVideo(id);
-            this.navigateTo('video');
-        } catch(error) {
+            if (response.ok || response.status === 200 || response.status === 204) {
+                this.navigateTo('videos');
+            } else {
+                alert('Помилка при затвердженні відео');
+            }
+        } catch (error) {
             this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
     }
 
-    async deleteVideo(id) {
-        event.preventDefault();
+    async deleteVideo(event, id) {
+        if (event) event.preventDefault();
         if (!confirm('Ви впевнені, що хочете видалити це відео?')) return;
         try {
             await VideoService.deleteVideo(id);
-            this.navigateTo('video');
+            this.navigateTo('videos');
         } catch (error) {
             this.contentContainer.innerHTML = `<p style="color: red;">Помилка: ${error.message}</p>`;
         }
@@ -452,11 +453,10 @@ class WebPolyOmniaApp {
 
 window.app = new WebPolyOmniaApp();
 
-
-// Функція для красивого виведення дати
+// Допоміжна функція для безпечного виведення дати
 function formatDate(item) {
     const rawDate = item.createdAt || item.CreatedAt || item.dateCreated || item.DateCreated;
     if (!rawDate) return 'Дата відсутня';
     const date = new Date(rawDate);
-    return isNaN(date.getTime()) ? 'Некоректна дата' : date.toLocaleDateString('uk-UA');
+    return isNaN(date.getTime()) ? 'Дата відсутня' : date.toLocaleDateString('uk-UA');
 }

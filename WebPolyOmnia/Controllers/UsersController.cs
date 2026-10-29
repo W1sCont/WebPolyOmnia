@@ -14,6 +14,7 @@ namespace WebPolyOmnia.Controllers
         public async Task<ActionResult> ApproveUsers()
         {
             var users = await userService.GetUsersByRole("Unconfirmed");
+            if(users == null) return NotFound();
             return Ok(users);
         }
 
@@ -26,7 +27,7 @@ namespace WebPolyOmnia.Controllers
             return CreatedAtAction(nameof(ApproveUsers), null);
         }
 
-        [HttpDelete("users/{id}")]
+        [HttpDelete("{id}")]
         public async Task<ActionResult> RejectUser(int id)
         {
             await userService.DeleteUser(id);

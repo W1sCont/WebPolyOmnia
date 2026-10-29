@@ -19,7 +19,7 @@ namespace WebPolyOmnia.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryDTO>> GetCategpry(int id)
+        public async Task<ActionResult<CategoryDTO>> GetCategory(int id)
         {
             var category = await categoryService.GetCategoryById(id);
             if (category == null) return NotFound();
@@ -31,7 +31,7 @@ namespace WebPolyOmnia.Controllers
         public async Task<ActionResult> CreateCategory([FromBody] CategoryDTO model)
         {
             await categoryService.CreateCategory(model);
-            return CreatedAtAction(nameof(GetCategpry), new { id = model.Id }, model);
+            return Ok();
         }
 
         [HttpPut("{id}")]
@@ -45,7 +45,7 @@ namespace WebPolyOmnia.Controllers
             category.Name = model.Name.Trim();
             await categoryService.UpdateCategory(category);
 
-            return NoContent();
+            return Ok();
         }
 
         [HttpDelete("{id}")]
@@ -57,7 +57,7 @@ namespace WebPolyOmnia.Controllers
                 await categoryService.DeleteCategory(category);
             }
 
-            return CreatedAtAction(nameof(GetCategpry), null);
+            return Ok();
         }
     }
 }
